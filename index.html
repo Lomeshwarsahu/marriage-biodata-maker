@@ -115,15 +115,15 @@
       </div>
 
       <div class="header-actions">
-        <!-- Quick Action Buttons -->
+        <!-- Quick Action Buttons with Responsive Labels -->
         <button type="button" class="btn btn-outline" id="loadSampleBtn" title="Fill form with sample dummy data">
-          <i class="fa-solid fa-wand-magic-sparkles"></i> <span>नमूना डेटा भरें / Sample</span>
+          <i class="fa-solid fa-wand-magic-sparkles"></i> <span class="btn-text-full">नमूना डेटा भरें</span><span class="btn-text-short">नमूना</span>
         </button>
         <button type="button" class="btn btn-outline" id="saveDraftBtn" title="Save current form draft">
-          <i class="fa-solid fa-floppy-disk"></i> <span>सुरक्षित करें / Save</span>
+          <i class="fa-solid fa-floppy-disk"></i> <span class="btn-text-full">सुरक्षित करें</span><span class="btn-text-short">सेव</span>
         </button>
         <button type="button" class="btn btn-outline-danger" id="resetFormBtn" title="Reset all fields">
-          <i class="fa-solid fa-rotate-left"></i> <span>रीसेट / Reset</span>
+          <i class="fa-solid fa-rotate-left"></i> <span class="btn-text-full">रीसेट करें</span><span class="btn-text-short">रीसेट</span>
         </button>
       </div>
     </div>
@@ -352,6 +352,20 @@
                   <option value="तलाकशुदा (Divorced)">तलाकशुदा (Divorced)</option>
                   <option value="विधुर/विधवा (Widowed)">विधुर/विधवा (Widowed)</option>
                   <option value="प्रतीक्षारत (Awaiting Divorce)">प्रतीक्षारत (Awaiting Divorce)</option>
+                </select>
+              </div>
+
+              <!-- Dietary Preference (खान-पान / आहार - शाकाहारी / मांसाहारी) -->
+              <div class="form-group">
+                <label for="diet">
+                  खान-पान / आहार <span class="en-lbl">/ Diet (Veg / Non-Veg)</span>
+                </label>
+                <select id="diet" name="diet">
+                  <option value="शाकाहारी (Vegetarian)" selected>शाकाहारी (Vegetarian)</option>
+                  <option value="शुद्ध शाकाहारी (Pure Vegetarian)">शुद्ध शाकाहारी (Pure Vegetarian)</option>
+                  <option value="जैन शाकाहारी (Jain Vegetarian)">जैन शाकाहारी (Jain Vegetarian)</option>
+                  <option value="अंडा युक्त शाकाहारी (Eggetarian)">अंडा युक्त शाकाहारी (Eggetarian)</option>
+                  <option value="मांसाहारी (Non-Vegetarian)">मांसाहारी (Non-Vegetarian)</option>
                 </select>
               </div>
             </div>
@@ -767,8 +781,13 @@
       <!-- Top Floating Toolbar -->
       <div class="preview-toolbar">
         <div class="toolbar-left">
-          <span class="toolbar-title"><i class="fa-solid fa-file-invoice"></i> बायोडाटा पूर्वावलोकन <span class="en-title">(Live Preview)</span></span>
-          <span class="a4-tag">A4 Standard</span>
+          <span class="toolbar-title"><i class="fa-solid fa-file-invoice"></i> पूर्वावलोकन <span class="en-title">(Preview)</span></span>
+          <div class="zoom-controls">
+            <button type="button" class="zoom-btn" id="zoomOutBtn" title="Zoom Out"><i class="fa-solid fa-minus"></i></button>
+            <span class="zoom-level" id="zoomLevelText">Fit</span>
+            <button type="button" class="zoom-btn" id="zoomInBtn" title="Zoom In"><i class="fa-solid fa-plus"></i></button>
+            <button type="button" class="zoom-btn-fit" id="zoomFitBtn" title="Fit to Screen"><i class="fa-solid fa-compress"></i> फ़िट</button>
+          </div>
         </div>
 
         <div class="toolbar-actions">
@@ -949,6 +968,10 @@
                     <div class="detail-row" id="rowMaritalStatus">
                       <span class="lbl"><span class="bullet">✦</span> वैवाहिक स्थिति (Marital Status) :</span>
                       <span class="val" id="valMaritalStatus">अविवाहित (Never Married)</span>
+                    </div>
+                    <div class="detail-row" id="rowDiet">
+                      <span class="lbl"><span class="bullet">✦</span> खान-पान / आहार (Diet) :</span>
+                      <span class="val" id="valDiet">शाकाहारी (Vegetarian)</span>
                     </div>
                   </div>
                 </div>

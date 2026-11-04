@@ -111,6 +111,7 @@ const DOM = {
   valBloodGroup: document.getElementById('valBloodGroup'),
   valComplexion: document.getElementById('valComplexion'),
   valMaritalStatus: document.getElementById('valMaritalStatus'),
+  valDiet: document.getElementById('valDiet'),
 
   valEducation: document.getElementById('valEducation'),
   valCollege: document.getElementById('valCollege'),
@@ -181,6 +182,7 @@ const SAMPLE_DATA = {
   bloodGroup: "B+",
   complexion: "गोरा (Fair)",
   maritalStatus: "अविवाहित (Never Married)",
+  diet: "शुद्ध शाकाहारी (Pure Vegetarian)",
   
   education: "B.Tech in Computer Science & Engineering",
   college: "IIT Roorkee (आईआईटी रुड़की)",
@@ -253,6 +255,14 @@ function setupEventListeners() {
   // Mobile floating buttons
   if (DOM.mobilePdfBtn) DOM.mobilePdfBtn.addEventListener('click', generatePDF);
   if (DOM.mobileImgBtn) DOM.mobileImgBtn.addEventListener('click', generateImage);
+
+  // Zoom control buttons
+  const zoomInBtn = document.getElementById('zoomInBtn');
+  const zoomOutBtn = document.getElementById('zoomOutBtn');
+  const zoomFitBtn = document.getElementById('zoomFitBtn');
+  if (zoomInBtn) zoomInBtn.addEventListener('click', zoomIn);
+  if (zoomOutBtn) zoomOutBtn.addEventListener('click', zoomOut);
+  if (zoomFitBtn) zoomFitBtn.addEventListener('click', resetZoomFit);
 
   // Date of Birth auto-calculates Age
   const dobInput = document.getElementById('dob');
@@ -495,6 +505,9 @@ function handleFormInput() {
 
   const maritalStatus = getVal('maritalStatus');
   DOM.valMaritalStatus.textContent = maritalStatus || "-";
+
+  const diet = getVal('diet');
+  if (DOM.valDiet) DOM.valDiet.textContent = diet || "शाकाहारी (Vegetarian)";
 
   // Top Hero tags update
   const ageDisplay = age ? age.split(' ')[0] + ' वर्ष' : '26 वर्ष';
@@ -1017,8 +1030,11 @@ async function generatePDF() {
 }
 
 /* ===================================================================
-   RESPONSIVE PREVIEW SCALING (DYNAMIC FIT FOR MOBILE & DESKTOP)
+   RESPONSIVE PREVIEW SCALING & INTERACTIVE ZOOM
    =================================================================== */
+let currentZoomScale = 1.0;
+let isCustomZoom = false;
+
 function fitBiodataPreview() {
   const viewport = DOM.previewViewport || document.getElementById('previewViewport');
   const zoomWrapper = DOM.sheetZoomWrapper || document.getElementById('sheetZoomWrapper');
@@ -1027,21 +1043,66 @@ function fitBiodataPreview() {
 
   const isMobile = window.innerWidth <= 860;
   // Available width accounting for paddings
-  const availableWidth = isMobile ? (window.innerWidth - 20) : (viewport.clientWidth - 16);
+  const availableWidth = isMobile ? (window.innerWidth - 16) : (viewport.clientWidth - 16);
   const sheetNativeWidth = 794;
   const sheetNativeHeight = 1123;
 
-  // Calculate dynamic scale factor
-  let scale = availableWidth / sheetNativeWidth;
-  if (!isMobile && scale > 1.0) scale = 1.0;
-  if (scale < 0.25) scale = 0.25;
+  if (!isCustomZoom) {
+    let scale = availableWidth / sheetNativeWidth;
+    if (!isMobile && scale > 1.0) scale = 1.0;
+    if (scale < 0.25) scale = 0.25;
+    currentZoomScale = scale;
+    updateZoomDisplay('Fit');
+  } else {
+    updateZoomDisplay(Math.round(currentZoomScale * 100) + '%');
+  }
 
-  zoomWrapper.style.transform = `scale(${scale})`;
+  zoomWrapper.style.transform = `scale(${currentZoomScale})`;
   zoomWrapper.style.transformOrigin = 'top center';
 
   // Accurately adjust viewport height so there are zero empty vertical gaps
-  const scaledHeight = Math.ceil(sheetNativeHeight * scale) + (isMobile ? 16 : 28);
-  viewport.style.height = `${scaledHeight}px`;
+  const scaledHeight = Math.ceil(sheetNativeHeight * currentZoomScale) + (isMobile ? 16 : 28);
+  if (!isMobile) {
+    viewport.style.height = `${scaledHeight}px`;
+  } else {
+    viewport.style.height = 'auto';
+    viewport.style.minHeight = `${scaledHeight}px`;
+  }
+}
+
+function updateZoomDisplay(text) {
+  const zoomText = document.getElementById('zoomLevelText');
+  if (zoomText) zoomText.textContent = text;
+}
+
+function zoomIn() {
+  isCustomZoom = true;
+  currentZoomScale = Math.min(1.4, Number((currentZoomScale + 0.15).toFixed(2)));
+  applyZoom();
+}
+
+function zoomOut() {
+  isCustomZoom = true;
+  currentZoomScale = Math.max(0.35, Number((currentZoomScale - 0.15).toFixed(2)));
+  applyZoom();
+}
+
+function resetZoomFit() {
+  isCustomZoom = false;
+  fitBiodataPreview();
+}
+
+function applyZoom() {
+  const viewport = DOM.previewViewport || document.getElementById('previewViewport');
+  const zoomWrapper = DOM.sheetZoomWrapper || document.getElementById('sheetZoomWrapper');
+  if (!zoomWrapper || !viewport) return;
+
+  zoomWrapper.style.transform = `scale(${currentZoomScale})`;
+  zoomWrapper.style.transformOrigin = 'top center';
+  updateZoomDisplay(Math.round(currentZoomScale * 100) + '%');
+
+  const scaledHeight = Math.ceil(1123 * currentZoomScale) + 24;
+  viewport.style.minHeight = `${scaledHeight}px`;
 }
 
 /* ===================================================================
