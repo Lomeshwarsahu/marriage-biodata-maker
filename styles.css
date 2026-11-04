@@ -1570,6 +1570,88 @@ body {
 }
 
 /* ===================================================================
+   SEO & FAQ FOOTER STYLING
+   =================================================================== */
+.app-footer-seo {
+  background: #ffffff;
+  border-top: 2px solid #e2d9cc;
+  padding: 40px 24px 24px;
+  margin-top: 40px;
+  color: #334155;
+}
+
+.seo-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.seo-intro-block {
+  text-align: center;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.seo-intro-block h2 {
+  font-family: 'Cinzel', 'Noto Serif Devanagari', serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #6e101e;
+  margin-bottom: 10px;
+}
+
+.seo-intro-block p {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: #64748b;
+}
+
+.seo-faq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.faq-item {
+  background: #fdfbf7;
+  border: 1px solid #e8dec8;
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+.faq-item h4 {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.faq-item h4 i {
+  color: #c59b27;
+  font-size: 0.95rem;
+}
+
+.faq-item p {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #64748b;
+}
+
+.seo-copyright {
+  text-align: center;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 18px;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+/* ===================================================================
    PRINT STYLESHEET (@media print)
    Optimized specifically for pristine A4 paper output
    =================================================================== */

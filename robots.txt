@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://lomeshwarsahu.github.io/marriage-biodata-maker/sitemap.xml
