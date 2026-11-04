@@ -796,9 +796,9 @@
 
       <!-- BIODATA WRAPPER (SCROLLABLE & ZOOMABLE CANVAS CONTAINER) -->
       <div class="preview-viewport" id="previewViewport">
-        
-        <!-- THE A4 BIODATA DOCUMENT (Target for html2canvas / jsPDF) -->
-        <div class="biodata-sheet" id="biodataSheet">
+        <div class="sheet-zoom-wrapper" id="sheetZoomWrapper">
+          <!-- THE A4 BIODATA DOCUMENT (Target for html2canvas / jsPDF) -->
+          <div class="biodata-sheet" id="biodataSheet">
           
           <!-- Ornate Outer Border Decoration -->
           <div class="sheet-border-outer">
@@ -1162,6 +1162,7 @@
             </div>
           </div>
         </div>
+        </div> <!-- End of sheetZoomWrapper -->
 
       </div>
     </section>
@@ -1222,6 +1223,16 @@
         <!-- Cloned or dynamically linked biodata sheet -->
       </div>
     </div>
+  </div>
+
+  <!-- MOBILE FLOATING ACTION BAR (When viewing preview on mobile) -->
+  <div class="mobile-floating-actions" id="mobileFloatingActions">
+    <button type="button" class="btn btn-download-pdf" id="mobilePdfBtn">
+      <i class="fa-solid fa-file-pdf"></i> <span>PDF डाउनलोड</span>
+    </button>
+    <button type="button" class="btn btn-download-img" id="mobileImgBtn">
+      <i class="fa-solid fa-file-image"></i> <span>इमेज सेव</span>
+    </button>
   </div>
 
   <!-- TOAST NOTIFICATION POPUP -->

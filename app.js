@@ -74,9 +74,13 @@ const DOM = {
   printBtn: document.getElementById('printBtn'),
   fullscreenBtn: document.getElementById('fullscreenBtn'),
 
-  // Mobile Tabs
+  // Mobile Tabs & Floating Actions
   tabFormBtn: document.getElementById('tabFormBtn'),
   tabPreviewBtn: document.getElementById('tabPreviewBtn'),
+  mobilePdfBtn: document.getElementById('mobilePdfBtn'),
+  mobileImgBtn: document.getElementById('mobileImgBtn'),
+  previewViewport: document.getElementById('previewViewport'),
+  sheetZoomWrapper: document.getElementById('sheetZoomWrapper'),
 
   // Modal
   fullscreenModal: document.getElementById('fullscreenModal'),
@@ -231,6 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupAutoSave();
   updateProgress();
   initTheme();
+  setTimeout(fitBiodataPreview, 100);
 });
 
 /* ===================================================================
@@ -240,6 +245,14 @@ function setupEventListeners() {
   // Input changes in form
   DOM.biodataForm.addEventListener('input', handleFormInput);
   DOM.biodataForm.addEventListener('change', handleFormInput);
+
+  // Responsive scaling listeners
+  window.addEventListener('resize', fitBiodataPreview);
+  window.addEventListener('orientationchange', fitBiodataPreview);
+
+  // Mobile floating buttons
+  if (DOM.mobilePdfBtn) DOM.mobilePdfBtn.addEventListener('click', generatePDF);
+  if (DOM.mobileImgBtn) DOM.mobileImgBtn.addEventListener('click', generateImage);
 
   // Date of Birth auto-calculates Age
   const dobInput = document.getElementById('dob');
@@ -893,6 +906,9 @@ async function generateImage() {
     }
 
     const sheet = DOM.biodataSheet;
+    const zoomWrapper = DOM.sheetZoomWrapper || document.getElementById('sheetZoomWrapper');
+    const origZoomTransform = zoomWrapper ? zoomWrapper.style.transform : '';
+    if (zoomWrapper) zoomWrapper.style.transform = 'none';
     
     // Temporarily ensure full visibility without scroll issues
     const originalTransform = sheet.style.transform;
@@ -910,8 +926,9 @@ async function generateImage() {
       windowWidth: 1200
     });
 
-    // Restore original transform
+    // Restore original transforms
     sheet.style.transform = originalTransform;
+    if (zoomWrapper) zoomWrapper.style.transform = origZoomTransform;
 
     // Convert to image download link
     const imageUri = canvas.toDataURL('image/png', 1.0);
@@ -952,6 +969,10 @@ async function generatePDF() {
     }
 
     const sheet = DOM.biodataSheet;
+    const zoomWrapper = DOM.sheetZoomWrapper || document.getElementById('sheetZoomWrapper');
+    const origZoomTransform = zoomWrapper ? zoomWrapper.style.transform : '';
+    if (zoomWrapper) zoomWrapper.style.transform = 'none';
+
     const originalTransform = sheet.style.transform;
     sheet.style.transform = 'none';
 
@@ -968,6 +989,7 @@ async function generatePDF() {
     });
 
     sheet.style.transform = originalTransform;
+    if (zoomWrapper) zoomWrapper.style.transform = origZoomTransform;
 
     const imgData = canvas.toDataURL('image/jpeg', 0.96);
 
@@ -995,14 +1017,50 @@ async function generatePDF() {
 }
 
 /* ===================================================================
+   RESPONSIVE PREVIEW SCALING (DYNAMIC FIT FOR MOBILE & DESKTOP)
+   =================================================================== */
+function fitBiodataPreview() {
+  const viewport = DOM.previewViewport || document.getElementById('previewViewport');
+  const zoomWrapper = DOM.sheetZoomWrapper || document.getElementById('sheetZoomWrapper');
+  const sheet = DOM.biodataSheet || document.getElementById('biodataSheet');
+  if (!viewport || !zoomWrapper || !sheet) return;
+
+  const isMobile = window.innerWidth <= 860;
+  // Available width accounting for paddings
+  const availableWidth = isMobile ? (window.innerWidth - 20) : (viewport.clientWidth - 16);
+  const sheetNativeWidth = 794;
+  const sheetNativeHeight = 1123;
+
+  // Calculate dynamic scale factor
+  let scale = availableWidth / sheetNativeWidth;
+  if (!isMobile && scale > 1.0) scale = 1.0;
+  if (scale < 0.25) scale = 0.25;
+
+  zoomWrapper.style.transform = `scale(${scale})`;
+  zoomWrapper.style.transformOrigin = 'top center';
+
+  // Accurately adjust viewport height so there are zero empty vertical gaps
+  const scaledHeight = Math.ceil(sheetNativeHeight * scale) + (isMobile ? 16 : 28);
+  viewport.style.height = `${scaledHeight}px`;
+}
+
+/* ===================================================================
    FULLSCREEN PREVIEW MODAL
    =================================================================== */
 function openFullscreenModal() {
   DOM.modalBody.innerHTML = '';
   const clone = DOM.biodataSheet.cloneNode(true);
   clone.id = 'biodataSheetClone';
-  clone.style.transform = 'none';
   clone.style.margin = '0 auto';
+
+  // Responsive scaling for modal on mobile
+  const availableWidth = DOM.modalBody.clientWidth || (window.innerWidth - 32);
+  let scale = availableWidth / 794;
+  if (scale > 1.0) scale = 1.0;
+  if (scale < 0.25) scale = 0.25;
+  clone.style.transform = `scale(${scale})`;
+  clone.style.transformOrigin = 'top center';
+
   DOM.modalBody.appendChild(clone);
   DOM.fullscreenModal.classList.add('active');
   document.body.style.overflow = 'hidden';
@@ -1021,8 +1079,8 @@ function setMobileView(view) {
     DOM.body.classList.add('mobile-view-preview');
     if (DOM.tabFormBtn) DOM.tabFormBtn.classList.remove('active');
     if (DOM.tabPreviewBtn) DOM.tabPreviewBtn.classList.add('active');
-    // Scroll to top of preview
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(fitBiodataPreview, 50);
   } else {
     DOM.body.classList.remove('mobile-view-preview');
     if (DOM.tabFormBtn) DOM.tabFormBtn.classList.add('active');
