@@ -910,10 +910,10 @@ async function generateImage() {
   const cleanName = candidateName.replace(/[^a-zA-Z0-9\u0900-\u097F_-]/g, '_').substring(0, 30);
   const fileName = `Biodata_${cleanName}.png`;
 
-  showToast("इमेज तैयार हो रही है, कृपया प्रतीक्षा करें... (Generating Image...)", "info");
+  showToast("उच्च गुणवत्ता वाली इमेज तैयार हो रही है... (Generating HD Image...)", "info");
 
   try {
-    // Wait for fonts to finish loading for crisp typography
+    // Wait for web fonts to finish loading for crisp typography
     if (document.fonts && document.fonts.ready) {
       await document.fonts.ready;
     }
@@ -921,26 +921,48 @@ async function generateImage() {
     const sheet = DOM.biodataSheet;
     const zoomWrapper = DOM.sheetZoomWrapper || document.getElementById('sheetZoomWrapper');
     const origZoomTransform = zoomWrapper ? zoomWrapper.style.transform : '';
-    if (zoomWrapper) zoomWrapper.style.transform = 'none';
-    
-    // Temporarily ensure full visibility without scroll issues
-    const originalTransform = sheet.style.transform;
-    sheet.style.transform = 'none';
+    const origSheetTransform = sheet ? sheet.style.transform : '';
 
-    // Capture with html2canvas (Scale 2.2 for high density, retina quality)
+    if (zoomWrapper) zoomWrapper.style.transform = 'none';
+    if (sheet) sheet.style.transform = 'none';
+
+    // Capture with html2canvas (Scale 2.6 for 300+ DPI ultra retina clarity)
     const canvas = await html2canvas(sheet, {
-      scale: 2.2,
+      scale: 2.6,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
       scrollX: 0,
       scrollY: 0,
-      windowWidth: 1200
+      windowWidth: 1400,
+      windowHeight: 1800,
+      onclone: (clonedDoc) => {
+        const clonedSheet = clonedDoc.getElementById('biodataSheet');
+        const clonedWrapper = clonedDoc.getElementById('sheetZoomWrapper');
+        const clonedViewport = clonedDoc.getElementById('previewViewport');
+        if (clonedSheet) {
+          clonedSheet.style.transform = 'none';
+          clonedSheet.style.width = '794px';
+          clonedSheet.style.minHeight = '1123px';
+          clonedSheet.style.boxShadow = 'none';
+          clonedSheet.style.margin = '0 auto';
+        }
+        if (clonedWrapper) {
+          clonedWrapper.style.transform = 'none';
+          clonedWrapper.style.width = '794px';
+          clonedWrapper.style.height = 'auto';
+        }
+        if (clonedViewport) {
+          clonedViewport.style.overflow = 'visible';
+          clonedViewport.style.width = '100%';
+          clonedViewport.style.maxWidth = 'none';
+        }
+      }
     });
 
     // Restore original transforms
-    sheet.style.transform = originalTransform;
+    if (sheet) sheet.style.transform = origSheetTransform;
     if (zoomWrapper) zoomWrapper.style.transform = origZoomTransform;
 
     // Convert to image download link
@@ -973,7 +995,7 @@ async function generatePDF() {
   const cleanName = candidateName.replace(/[^a-zA-Z0-9\u0900-\u097F_-]/g, '_').substring(0, 30);
   const fileName = `Biodata_${cleanName}.pdf`;
 
-  showToast("उच्च गुणवत्ता वाला PDF तैयार किया जा रहा है... (Generating PDF...)", "info");
+  showToast("उच्च गुणवत्ता वाला A4 PDF तैयार किया जा रहा है... (Generating PDF...)", "info");
 
   try {
     // Wait for fonts to finish rendering
@@ -984,27 +1006,51 @@ async function generatePDF() {
     const sheet = DOM.biodataSheet;
     const zoomWrapper = DOM.sheetZoomWrapper || document.getElementById('sheetZoomWrapper');
     const origZoomTransform = zoomWrapper ? zoomWrapper.style.transform : '';
+    const origSheetTransform = sheet ? sheet.style.transform : '';
+
     if (zoomWrapper) zoomWrapper.style.transform = 'none';
+    if (sheet) sheet.style.transform = 'none';
 
-    const originalTransform = sheet.style.transform;
-    sheet.style.transform = 'none';
-
-    // Capture using html2canvas with high pixel ratio
+    // Capture using html2canvas with ultra-high resolution
     const canvas = await html2canvas(sheet, {
-      scale: 2.2,
+      scale: 2.6,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
       scrollX: 0,
       scrollY: 0,
-      windowWidth: 1200
+      windowWidth: 1400,
+      windowHeight: 1800,
+      onclone: (clonedDoc) => {
+        const clonedSheet = clonedDoc.getElementById('biodataSheet');
+        const clonedWrapper = clonedDoc.getElementById('sheetZoomWrapper');
+        const clonedViewport = clonedDoc.getElementById('previewViewport');
+        if (clonedSheet) {
+          clonedSheet.style.transform = 'none';
+          clonedSheet.style.width = '794px';
+          clonedSheet.style.minHeight = '1123px';
+          clonedSheet.style.boxShadow = 'none';
+          clonedSheet.style.margin = '0 auto';
+        }
+        if (clonedWrapper) {
+          clonedWrapper.style.transform = 'none';
+          clonedWrapper.style.width = '794px';
+          clonedWrapper.style.height = 'auto';
+        }
+        if (clonedViewport) {
+          clonedViewport.style.overflow = 'visible';
+          clonedViewport.style.width = '100%';
+          clonedViewport.style.maxWidth = 'none';
+        }
+      }
     });
 
-    sheet.style.transform = originalTransform;
+    if (sheet) sheet.style.transform = origSheetTransform;
     if (zoomWrapper) zoomWrapper.style.transform = origZoomTransform;
 
-    const imgData = canvas.toDataURL('image/jpeg', 0.96);
+    // Lossless PNG for crisp, artifact-free text and borders
+    const imgData = canvas.toDataURL('image/png', 1.0);
 
     // Initialize jsPDF A4 portrait document
     const pdf = new JsPdfConstructor({
@@ -1014,15 +1060,27 @@ async function generatePDF() {
       compress: true
     });
 
-    // A4 dimensions in mm: 210 x 297
     const pdfWidth = 210;
     const pdfHeight = 297;
 
-    // Add image fitting the exact A4 page
-    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+    // Calculate exact aspect ratio to prevent stretching, clipping or cuts
+    const canvasAspect = canvas.height / canvas.width;
+    let renderW = pdfWidth;
+    let renderH = pdfWidth * canvasAspect;
+
+    if (renderH > pdfHeight) {
+      renderH = pdfHeight;
+      renderW = pdfHeight / canvasAspect;
+    }
+
+    const posX = (pdfWidth - renderW) / 2;
+    const posY = (pdfHeight - renderH) / 2;
+
+    // Use SLOW high-quality interpolation to avoid raster scratches
+    pdf.addImage(imgData, 'PNG', posX, posY, renderW, renderH, undefined, 'SLOW');
     pdf.save(fileName);
 
-    showToast("PDF सफलतापूर्वक डाउनलोड हो गई! (PDF Downloaded)", "success");
+    showToast("A4 PDF सफलतापूर्वक डाउनलोड हो गई! (PDF Downloaded)", "success");
   } catch (error) {
     console.error("PDF generation failed:", error);
     showToast("PDF तैयार करने में त्रुटि आई। कृपया पुनः प्रयास करें।", "error");
