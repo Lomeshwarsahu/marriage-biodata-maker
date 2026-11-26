@@ -43,7 +43,9 @@ const DOM = {
   formPanel: document.getElementById('formPanel'),
   previewPanel: document.getElementById('previewPanel'),
   biodataForm: document.getElementById('biodataForm'),
-  biodataSheet: document.getElementById('biodataSheet'),
+  biodataSheet: document.getElementById('biodataSheet1') || document.getElementById('biodataSheet'),
+  biodataSheet1: document.getElementById('biodataSheet1'),
+  biodataSheet2: document.getElementById('biodataSheet2'),
 
   // Header & Controls
   displayLangSelect: document.getElementById('displayLangSelect'),
@@ -225,8 +227,8 @@ const SAMPLE_DATA = {
   cityState: "जयपुर, राजस्थान"
 };
 
-// Auspicious Avatar SVG as Default Sample Photo
-const SAMPLE_AVATAR_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%236e101e"/><stop offset="100%" stop-color="%23cca43b"/></linearGradient></defs><rect width="200" height="200" fill="%23f7f0e4"/><circle cx="100" cy="80" r="42" fill="url(%23g)"/><ellipse cx="100" cy="180" rx="68" ry="48" fill="url(%23g)"/><circle cx="100" cy="74" r="5" fill="%23cca43b"/></svg>`;
+// Auspicious Avatar SVG as Default Sample Photo (Exact 300x380 ~ 150:190 Aspect Ratio)
+const SAMPLE_AVATAR_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="380" viewBox="0 0 300 380"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%236e101e"/><stop offset="100%" stop-color="%23cca43b"/></linearGradient></defs><rect width="300" height="380" fill="%23fcf9f2"/><circle cx="150" cy="135" r="65" fill="url(%23g)"/><ellipse cx="150" cy="310" rx="105" ry="85" fill="url(%23g)"/><circle cx="150" cy="120" r="7" fill="%23cca43b"/><circle cx="150" cy="105" r="3" fill="%23d4af37"/></svg>`;
 
 /* ===================================================================
    INITIALIZATION
@@ -702,6 +704,70 @@ function updateProgress() {
 }
 
 /* ===================================================================
+   PORTRAIT PHOTO ASPECT-RATIO NORMALIZER
+   Prevents any stretching/distortion in html2canvas PDF/Image export
+   Crops photo to exact frame ratio (150:190 ~ 0.7895) at high 4x retina resolution (600x760)
+   =================================================================== */
+function processPhotoForMatrimonialFrame(dataUrl, callback) {
+  if (!dataUrl) {
+    callback('');
+    return;
+  }
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    try {
+      // Frame inner area: 150px x 190px (ratio = 15/19 = ~0.7895)
+      // High retina resolution (600px x 760px) for ultra-sharp HD print quality
+      const targetW = 600;
+      const targetH = 760;
+      const targetRatio = targetW / targetH;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      const srcW = img.naturalWidth || img.width;
+      const srcH = img.naturalHeight || img.height;
+      const srcRatio = srcW / srcH;
+
+      let drawW, drawH, drawX, drawY;
+
+      if (srcRatio > targetRatio) {
+        // Image is wider than frame: fit height, center horizontally
+        drawH = targetH;
+        drawW = srcW * (targetH / srcH);
+        drawX = (targetW - drawW) / 2;
+        drawY = 0;
+      } else {
+        // Image is taller than frame: fit width, crop bottom with 15% top bias for faces
+        drawW = targetW;
+        drawH = srcH * (targetW / srcW);
+        drawX = 0;
+        // Bias slightly upwards so candidate's hair/head is never cut off
+        drawY = (targetH - drawH) * 0.15;
+        if (drawY > 0) drawY = 0;
+        if (drawY + drawH < targetH) drawY = targetH - drawH;
+      }
+
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      const processedUrl = canvas.toDataURL('image/jpeg', 0.95);
+      callback(processedUrl);
+    } catch (e) {
+      console.warn("Could not process photo aspect ratio:", e);
+      callback(dataUrl);
+    }
+  };
+  img.onerror = () => {
+    callback(dataUrl);
+  };
+  img.src = dataUrl;
+}
+
+/* ===================================================================
    PHOTO UPLOAD, PREVIEW & REMOVAL
    =================================================================== */
 function handlePhotoUpload(e) {
@@ -721,10 +787,13 @@ function handlePhotoUpload(e) {
 
   const reader = new FileReader();
   reader.onload = function(event) {
-    const dataUrl = event.target.result;
-    applyPhoto(dataUrl);
-    AppState.isDirty = true;
-    showToast("फोटो सफलतापूर्वक लोड हो गई!", "success");
+    const rawDataUrl = event.target.result;
+    processPhotoForMatrimonialFrame(rawDataUrl, (processedUrl) => {
+      applyPhoto(processedUrl);
+      AppState.isDirty = true;
+      if (typeof autoSaveDraft === 'function') autoSaveDraft();
+      showToast("फोटो सफलतापूर्वक लोड हो गई!", "success");
+    });
   };
   reader.readAsDataURL(file);
 }
@@ -848,7 +917,9 @@ function loadSavedDraft() {
 
     // Photo
     if (data.photoDataUrl) {
-      applyPhoto(data.photoDataUrl);
+      processPhotoForMatrimonialFrame(data.photoDataUrl, (processed) => {
+        applyPhoto(processed);
+      });
     }
 
     handleFormInput();
@@ -873,8 +944,10 @@ function loadSampleData() {
     }
   });
 
-  // Load sample avatar
-  applyPhoto(SAMPLE_AVATAR_SVG);
+  // Load sample avatar with exact frame aspect ratio
+  processPhotoForMatrimonialFrame(SAMPLE_AVATAR_SVG, (processed) => {
+    applyPhoto(processed);
+  });
 
   handleFormInput();
   showToast("सुंदर नमूना डेटा लोड हो गया! (Sample Data Loaded)", "success");
@@ -903,14 +976,13 @@ function handlePrint() {
 }
 
 /* ===================================================================
-   DOWNLOAD AS HIGH RESOLUTION IMAGE (PNG)
+   DOWNLOAD AS HIGH RESOLUTION IMAGE (PNG - PAGE 1 & PAGE 2)
    =================================================================== */
 async function generateImage() {
   const candidateName = getVal('fullName') || 'Marriage_Candidate';
   const cleanName = candidateName.replace(/[^a-zA-Z0-9\u0900-\u097F_-]/g, '_').substring(0, 30);
-  const fileName = `Biodata_${cleanName}.png`;
 
-  showToast("उच्च गुणवत्ता वाली इमेज तैयार हो रही है... (Generating HD Image...)", "info");
+  showToast("उच्च गुणवत्ता वाली इमेज तैयार हो रही है... (Generating HD Images...)", "info");
 
   try {
     // Wait for web fonts to finish loading for crisp typography
@@ -918,17 +990,15 @@ async function generateImage() {
       await document.fonts.ready;
     }
 
-    const sheet = DOM.biodataSheet;
+    const sheet1 = document.getElementById('biodataSheet1') || DOM.biodataSheet;
+    const sheet2 = document.getElementById('biodataSheet2');
     const zoomWrapper = DOM.sheetZoomWrapper || document.getElementById('sheetZoomWrapper');
     const origZoomTransform = zoomWrapper ? zoomWrapper.style.transform : '';
-    const origSheetTransform = sheet ? sheet.style.transform : '';
 
     if (zoomWrapper) zoomWrapper.style.transform = 'none';
-    if (sheet) sheet.style.transform = 'none';
 
-    // Capture with html2canvas (Scale 2.6 for 300+ DPI ultra retina clarity)
-    const canvas = await html2canvas(sheet, {
-      scale: 2.6,
+    const captureOptions = {
+      scale: 2.5,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
@@ -937,44 +1007,68 @@ async function generateImage() {
       scrollY: 0,
       windowWidth: 1400,
       windowHeight: 1800,
+      width: 794,
+      height: 1123,
       onclone: (clonedDoc) => {
-        const clonedSheet = clonedDoc.getElementById('biodataSheet');
+        const sheets = clonedDoc.querySelectorAll('.biodata-sheet');
+        sheets.forEach(s => {
+          s.style.transform = 'none';
+          s.style.width = '794px';
+          s.style.height = '1123px';
+          s.style.minHeight = '1123px';
+          s.style.maxHeight = '1123px';
+          s.style.boxShadow = 'none';
+          s.style.margin = '0 auto';
+          s.style.boxSizing = 'border-box';
+          s.style.overflow = 'hidden';
+        });
+        const inners = clonedDoc.querySelectorAll('.sheet-border-inner');
+        inners.forEach(inn => {
+          inn.style.overflow = 'visible';
+          inn.style.height = '100%';
+          inn.style.display = 'flex';
+          inn.style.flexDirection = 'column';
+          inn.style.justifyContent = 'space-between';
+        });
         const clonedWrapper = clonedDoc.getElementById('sheetZoomWrapper');
-        const clonedViewport = clonedDoc.getElementById('previewViewport');
-        if (clonedSheet) {
-          clonedSheet.style.transform = 'none';
-          clonedSheet.style.width = '794px';
-          clonedSheet.style.minHeight = '1123px';
-          clonedSheet.style.boxShadow = 'none';
-          clonedSheet.style.margin = '0 auto';
-        }
         if (clonedWrapper) {
           clonedWrapper.style.transform = 'none';
           clonedWrapper.style.width = '794px';
           clonedWrapper.style.height = 'auto';
         }
-        if (clonedViewport) {
-          clonedViewport.style.overflow = 'visible';
-          clonedViewport.style.width = '100%';
-          clonedViewport.style.maxWidth = 'none';
-        }
       }
-    });
+    };
+
+    // Capture Page 1
+    const canvas1 = await html2canvas(sheet1, captureOptions);
+    const link1 = document.createElement('a');
+    link1.download = `Biodata_${cleanName}_Page1.png`;
+    link1.href = canvas1.toDataURL('image/png', 1.0);
+    document.body.appendChild(link1);
+    link1.click();
+    document.body.removeChild(link1);
+
+    // Capture Page 2 if present
+    if (sheet2) {
+      setTimeout(async () => {
+        try {
+          const canvas2 = await html2canvas(sheet2, captureOptions);
+          const link2 = document.createElement('a');
+          link2.download = `Biodata_${cleanName}_Page2.png`;
+          link2.href = canvas2.toDataURL('image/png', 1.0);
+          document.body.appendChild(link2);
+          link2.click();
+          document.body.removeChild(link2);
+        } catch (err) {
+          console.error("Page 2 image generation error:", err);
+        }
+      }, 350);
+    }
 
     // Restore original transforms
-    if (sheet) sheet.style.transform = origSheetTransform;
     if (zoomWrapper) zoomWrapper.style.transform = origZoomTransform;
 
-    // Convert to image download link
-    const imageUri = canvas.toDataURL('image/png', 1.0);
-    const link = document.createElement('a');
-    link.download = fileName;
-    link.href = imageUri;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    showToast("इमेज सफलतापूर्वक डाउनलोड हो गई! (Image Downloaded)", "success");
+    showToast("इमेज (पृष्ठ 1 व 2) सफलतापूर्वक डाउनलोड हो गई!", "success");
   } catch (error) {
     console.error("Image generation error:", error);
     showToast("इमेज बनाने में विफलता, कृपया पुनः प्रयास करें।", "error");
@@ -982,7 +1076,7 @@ async function generateImage() {
 }
 
 /* ===================================================================
-   DOWNLOAD AS HIGH QUALITY A4 PDF (jsPDF + html2canvas)
+   DOWNLOAD AS HIGH QUALITY 2-PAGE A4 PDF (jsPDF + html2canvas)
    =================================================================== */
 async function generatePDF() {
   const JsPdfConstructor = getJsPdfConstructor();
@@ -995,7 +1089,7 @@ async function generatePDF() {
   const cleanName = candidateName.replace(/[^a-zA-Z0-9\u0900-\u097F_-]/g, '_').substring(0, 30);
   const fileName = `Biodata_${cleanName}.pdf`;
 
-  showToast("उच्च गुणवत्ता वाला A4 PDF तैयार किया जा रहा है... (Generating PDF...)", "info");
+  showToast("2 पृष्ठों वाला A4 PDF तैयार किया जा रहा है... (Generating 2-Page PDF...)", "info");
 
   try {
     // Wait for fonts to finish rendering
@@ -1003,17 +1097,15 @@ async function generatePDF() {
       await document.fonts.ready;
     }
 
-    const sheet = DOM.biodataSheet;
+    const sheet1 = document.getElementById('biodataSheet1') || DOM.biodataSheet;
+    const sheet2 = document.getElementById('biodataSheet2');
     const zoomWrapper = DOM.sheetZoomWrapper || document.getElementById('sheetZoomWrapper');
     const origZoomTransform = zoomWrapper ? zoomWrapper.style.transform : '';
-    const origSheetTransform = sheet ? sheet.style.transform : '';
 
     if (zoomWrapper) zoomWrapper.style.transform = 'none';
-    if (sheet) sheet.style.transform = 'none';
 
-    // Capture using html2canvas with ultra-high resolution
-    const canvas = await html2canvas(sheet, {
-      scale: 2.6,
+    const captureOptions = {
+      scale: 2.5,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
@@ -1022,35 +1114,41 @@ async function generatePDF() {
       scrollY: 0,
       windowWidth: 1400,
       windowHeight: 1800,
+      width: 794,
+      height: 1123,
       onclone: (clonedDoc) => {
-        const clonedSheet = clonedDoc.getElementById('biodataSheet');
+        const sheets = clonedDoc.querySelectorAll('.biodata-sheet');
+        sheets.forEach(s => {
+          s.style.transform = 'none';
+          s.style.width = '794px';
+          s.style.height = '1123px';
+          s.style.minHeight = '1123px';
+          s.style.maxHeight = '1123px';
+          s.style.boxShadow = 'none';
+          s.style.margin = '0 auto';
+          s.style.boxSizing = 'border-box';
+          s.style.overflow = 'hidden';
+        });
+        const inners = clonedDoc.querySelectorAll('.sheet-border-inner');
+        inners.forEach(inn => {
+          inn.style.overflow = 'visible';
+          inn.style.height = '100%';
+          inn.style.display = 'flex';
+          inn.style.flexDirection = 'column';
+          inn.style.justifyContent = 'space-between';
+        });
         const clonedWrapper = clonedDoc.getElementById('sheetZoomWrapper');
-        const clonedViewport = clonedDoc.getElementById('previewViewport');
-        if (clonedSheet) {
-          clonedSheet.style.transform = 'none';
-          clonedSheet.style.width = '794px';
-          clonedSheet.style.minHeight = '1123px';
-          clonedSheet.style.boxShadow = 'none';
-          clonedSheet.style.margin = '0 auto';
-        }
         if (clonedWrapper) {
           clonedWrapper.style.transform = 'none';
           clonedWrapper.style.width = '794px';
           clonedWrapper.style.height = 'auto';
         }
-        if (clonedViewport) {
-          clonedViewport.style.overflow = 'visible';
-          clonedViewport.style.width = '100%';
-          clonedViewport.style.maxWidth = 'none';
-        }
       }
-    });
+    };
 
-    if (sheet) sheet.style.transform = origSheetTransform;
-    if (zoomWrapper) zoomWrapper.style.transform = origZoomTransform;
-
-    // Lossless PNG for crisp, artifact-free text and borders
-    const imgData = canvas.toDataURL('image/png', 1.0);
+    // Capture Page 1
+    const canvas1 = await html2canvas(sheet1, captureOptions);
+    const imgData1 = canvas1.toDataURL('image/png', 1.0);
 
     // Initialize jsPDF A4 portrait document
     const pdf = new JsPdfConstructor({
@@ -1060,27 +1158,28 @@ async function generatePDF() {
       compress: true
     });
 
-    const pdfWidth = 210;
-    const pdfHeight = 297;
+    // Maintain EXACT mathematical aspect ratio (794 / 1123) with print margins so page is never stretched
+    const marginX = 4;
+    const printW = 210 - (marginX * 2); // 202mm
+    const sheetRatio = 794 / 1123;
+    const printH = printW / sheetRatio; // ~285.7mm
+    const marginY = (297 - printH) / 2; // ~5.65mm (vertically centered)
 
-    // Calculate exact aspect ratio to prevent stretching, clipping or cuts
-    const canvasAspect = canvas.height / canvas.width;
-    let renderW = pdfWidth;
-    let renderH = pdfWidth * canvasAspect;
+    // Add Page 1
+    pdf.addImage(imgData1, 'PNG', marginX, marginY, printW, printH, undefined, 'SLOW');
 
-    if (renderH > pdfHeight) {
-      renderH = pdfHeight;
-      renderW = pdfHeight / canvasAspect;
+    // Capture Page 2 and add as second page
+    if (sheet2) {
+      const canvas2 = await html2canvas(sheet2, captureOptions);
+      const imgData2 = canvas2.toDataURL('image/png', 1.0);
+      pdf.addPage();
+      pdf.addImage(imgData2, 'PNG', marginX, marginY, printW, printH, undefined, 'SLOW');
     }
 
-    const posX = (pdfWidth - renderW) / 2;
-    const posY = (pdfHeight - renderH) / 2;
+    if (zoomWrapper) zoomWrapper.style.transform = origZoomTransform;
 
-    // Use SLOW high-quality interpolation to avoid raster scratches
-    pdf.addImage(imgData, 'PNG', posX, posY, renderW, renderH, undefined, 'SLOW');
     pdf.save(fileName);
-
-    showToast("A4 PDF सफलतापूर्वक डाउनलोड हो गई! (PDF Downloaded)", "success");
+    showToast("2 पृष्ठों वाला PDF सफलतापूर्वक डाउनलोड हो गया! (2-Page PDF Downloaded)", "success");
   } catch (error) {
     console.error("PDF generation failed:", error);
     showToast("PDF तैयार करने में त्रुटि आई। कृपया पुनः प्रयास करें।", "error");
@@ -1088,7 +1187,7 @@ async function generatePDF() {
 }
 
 /* ===================================================================
-   RESPONSIVE PREVIEW SCALING & INTERACTIVE ZOOM
+   RESPONSIVE PREVIEW SCALING & INTERACTIVE ZOOM (2-PAGE LAYOUT)
    =================================================================== */
 let currentZoomScale = 1.0;
 let isCustomZoom = false;
@@ -1096,14 +1195,13 @@ let isCustomZoom = false;
 function fitBiodataPreview() {
   const viewport = DOM.previewViewport || document.getElementById('previewViewport');
   const zoomWrapper = DOM.sheetZoomWrapper || document.getElementById('sheetZoomWrapper');
-  const sheet = DOM.biodataSheet || document.getElementById('biodataSheet');
+  const sheet = DOM.biodataSheet || document.getElementById('biodataSheet1');
   if (!viewport || !zoomWrapper || !sheet) return;
 
   const isMobile = window.innerWidth <= 860;
   // Available width accounting for paddings
-  const availableWidth = isMobile ? (window.innerWidth - 24) : (viewport.clientWidth - 16);
+  const availableWidth = isMobile ? (window.innerWidth - 16) : (viewport.clientWidth - 16);
   const sheetNativeWidth = 794;
-  const sheetNativeHeight = 1123;
 
   if (!isCustomZoom) {
     let scale = availableWidth / sheetNativeWidth;
@@ -1146,13 +1244,25 @@ function applyZoom() {
   if (!zoomWrapper || !viewport) return;
 
   const isMobile = window.innerWidth <= 860;
+
+  zoomWrapper.style.width = '794px';
+  zoomWrapper.style.minWidth = '794px';
+  zoomWrapper.style.height = 'auto'; // Keep height auto so both pages are never clipped
   zoomWrapper.style.transform = `scale(${currentZoomScale})`;
   zoomWrapper.style.transformOrigin = 'top center';
+
   updateZoomDisplay(isCustomZoom ? Math.round(currentZoomScale * 100) + '%' : 'Fit');
 
-  const scaledHeight = Math.ceil(1123 * currentZoomScale);
-  zoomWrapper.style.height = `${scaledHeight}px`;
-  viewport.style.minHeight = `${scaledHeight + (isMobile ? 16 : 28)}px`;
+  // Measure the unscaled height of the 2-page wrapper
+  const unscaledHeight = zoomWrapper.offsetHeight || zoomWrapper.scrollHeight || 2360;
+  const scaledHeight = Math.ceil(unscaledHeight * currentZoomScale);
+
+  // Collapse unused space created by matrix scale using negative margin-bottom
+  const diff = unscaledHeight - scaledHeight;
+  zoomWrapper.style.marginBottom = `-${diff}px`;
+
+  // Set the viewport minimum height to match the visible scaled content
+  viewport.style.minHeight = `${scaledHeight + (isMobile ? 16 : 30)}px`;
   viewport.style.overflowX = isCustomZoom && currentZoomScale > 1.0 ? 'auto' : 'hidden';
 }
 
@@ -1161,9 +1271,32 @@ function applyZoom() {
    =================================================================== */
 function openFullscreenModal() {
   DOM.modalBody.innerHTML = '';
-  const clone = DOM.biodataSheet.cloneNode(true);
-  clone.id = 'biodataSheetClone';
-  clone.style.margin = '0 auto';
+  const sheet1 = document.getElementById('biodataSheet1') || DOM.biodataSheet;
+  const sheet2 = document.getElementById('biodataSheet2');
+
+  const modalWrapper = document.createElement('div');
+  modalWrapper.style.display = 'flex';
+  modalWrapper.style.flexDirection = 'column';
+  modalWrapper.style.alignItems = 'center';
+  modalWrapper.style.gap = '24px';
+  modalWrapper.style.width = '100%';
+
+  if (sheet1) {
+    const clone1 = sheet1.cloneNode(true);
+    clone1.id = 'modalSheetClone1';
+    clone1.style.transform = 'none';
+    clone1.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
+    modalWrapper.appendChild(clone1);
+  }
+  if (sheet2) {
+    const clone2 = sheet2.cloneNode(true);
+    clone2.id = 'modalSheetClone2';
+    clone2.style.transform = 'none';
+    clone2.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
+    modalWrapper.appendChild(clone2);
+  }
+
+  DOM.modalBody.appendChild(modalWrapper);
 
   // Responsive scaling for modal on mobile
   const availableWidth = DOM.modalBody.clientWidth || (window.innerWidth - 32);
@@ -1192,7 +1325,8 @@ function setMobileView(view) {
     if (DOM.tabFormBtn) DOM.tabFormBtn.classList.remove('active');
     if (DOM.tabPreviewBtn) DOM.tabPreviewBtn.classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setTimeout(fitBiodataPreview, 50);
+    setTimeout(fitBiodataPreview, 60);
+    setTimeout(fitBiodataPreview, 250);
   } else {
     DOM.body.classList.remove('mobile-view-preview');
     if (DOM.tabFormBtn) DOM.tabFormBtn.classList.add('active');
