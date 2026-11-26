@@ -227,8 +227,8 @@ const SAMPLE_DATA = {
   cityState: "जयपुर, राजस्थान"
 };
 
-// Auspicious Avatar SVG as Default Sample Photo (Exact 300x380 ~ 150:190 Aspect Ratio)
-const SAMPLE_AVATAR_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="380" viewBox="0 0 300 380"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%236e101e"/><stop offset="100%" stop-color="%23cca43b"/></linearGradient></defs><rect width="300" height="380" fill="%23fcf9f2"/><circle cx="150" cy="135" r="65" fill="url(%23g)"/><ellipse cx="150" cy="310" rx="105" ry="85" fill="url(%23g)"/><circle cx="150" cy="120" r="7" fill="%23cca43b"/><circle cx="150" cy="105" r="3" fill="%23d4af37"/></svg>`;
+// Auspicious Avatar SVG as Default Sample Photo (Exact 400x510 ~ 200:255 Aspect Ratio for 215x270 frame)
+const SAMPLE_AVATAR_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="510" viewBox="0 0 400 510"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%236e101e"/><stop offset="100%" stop-color="%23cca43b"/></linearGradient></defs><rect width="400" height="510" fill="%23fcf9f2"/><circle cx="200" cy="180" r="85" fill="url(%23g)"/><ellipse cx="200" cy="415" rx="145" ry="115" fill="url(%23g)"/><circle cx="200" cy="162" r="9" fill="%23cca43b"/><circle cx="200" cy="142" r="4" fill="%23d4af37"/></svg>`;
 
 /* ===================================================================
    INITIALIZATION
@@ -717,10 +717,10 @@ function processPhotoForMatrimonialFrame(dataUrl, callback) {
   img.crossOrigin = 'anonymous';
   img.onload = () => {
     try {
-      // Frame inner area: 150px x 190px (ratio = 15/19 = ~0.7895)
-      // High retina resolution (600px x 760px) for ultra-sharp HD print quality
-      const targetW = 600;
-      const targetH = 760;
+      // Frame inner area for 215px x 270px frame (exact 200px x 255px)
+      // High retina resolution (800px x 1020px) for ultra-sharp HD print quality
+      const targetW = 800;
+      const targetH = 1020;
       const targetRatio = targetW / targetH;
 
       const canvas = document.createElement('canvas');
