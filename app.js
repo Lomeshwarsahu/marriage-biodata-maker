@@ -1043,7 +1043,7 @@ function fitBiodataPreview() {
 
   const isMobile = window.innerWidth <= 860;
   // Available width accounting for paddings
-  const availableWidth = isMobile ? (window.innerWidth - 16) : (viewport.clientWidth - 16);
+  const availableWidth = isMobile ? (window.innerWidth - 24) : (viewport.clientWidth - 16);
   const sheetNativeWidth = 794;
   const sheetNativeHeight = 1123;
 
@@ -1057,17 +1057,7 @@ function fitBiodataPreview() {
     updateZoomDisplay(Math.round(currentZoomScale * 100) + '%');
   }
 
-  zoomWrapper.style.transform = `scale(${currentZoomScale})`;
-  zoomWrapper.style.transformOrigin = 'top center';
-
-  // Accurately adjust viewport height so there are zero empty vertical gaps
-  const scaledHeight = Math.ceil(sheetNativeHeight * currentZoomScale) + (isMobile ? 16 : 28);
-  if (!isMobile) {
-    viewport.style.height = `${scaledHeight}px`;
-  } else {
-    viewport.style.height = 'auto';
-    viewport.style.minHeight = `${scaledHeight}px`;
-  }
+  applyZoom();
 }
 
 function updateZoomDisplay(text) {
@@ -1097,12 +1087,15 @@ function applyZoom() {
   const zoomWrapper = DOM.sheetZoomWrapper || document.getElementById('sheetZoomWrapper');
   if (!zoomWrapper || !viewport) return;
 
+  const isMobile = window.innerWidth <= 860;
   zoomWrapper.style.transform = `scale(${currentZoomScale})`;
   zoomWrapper.style.transformOrigin = 'top center';
-  updateZoomDisplay(Math.round(currentZoomScale * 100) + '%');
+  updateZoomDisplay(isCustomZoom ? Math.round(currentZoomScale * 100) + '%' : 'Fit');
 
-  const scaledHeight = Math.ceil(1123 * currentZoomScale) + 24;
-  viewport.style.minHeight = `${scaledHeight}px`;
+  const scaledHeight = Math.ceil(1123 * currentZoomScale);
+  zoomWrapper.style.height = `${scaledHeight}px`;
+  viewport.style.minHeight = `${scaledHeight + (isMobile ? 16 : 28)}px`;
+  viewport.style.overflowX = isCustomZoom && currentZoomScale > 1.0 ? 'auto' : 'hidden';
 }
 
 /* ===================================================================

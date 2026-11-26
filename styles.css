@@ -111,10 +111,17 @@ body.theme-pink {
 /* ===================================================================
    GLOBAL RESETS & TYPOGRAPHY
    =================================================================== */
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden !important;
+  position: relative;
 }
 
 body {
@@ -906,18 +913,23 @@ body {
   gap: 10px;
   padding: 16px 0 32px;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .form-actions-bottom .btn {
   width: 100%;
-  padding: 12px 18px;
+  padding: 13px 16px;
   font-size: 0.92rem;
   font-weight: 700;
   justify-content: center;
   border-radius: var(--radius-md);
+  white-space: normal;
+  text-align: center;
+  box-sizing: border-box;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 861px) {
   .form-actions-bottom {
     flex-direction: row;
     gap: 12px;
@@ -925,6 +937,7 @@ body {
   .form-actions-bottom .btn {
     flex: 1;
     font-size: 0.88rem;
+    white-space: nowrap;
   }
 }
 
@@ -1842,11 +1855,22 @@ body {
     grid-template-columns: 1fr 1fr;
     gap: 8px;
     width: 100%;
+    box-sizing: border-box;
   }
 
   .toolbar-download-row .btn {
     padding: 10px 8px;
     font-size: 0.82rem;
+    min-width: 0;
+    box-sizing: border-box;
+    text-align: center;
+  }
+
+  @media (max-width: 360px) {
+    .toolbar-download-row {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
   }
 
   .preview-viewport {
@@ -1854,11 +1878,14 @@ body {
     border-radius: var(--radius-md);
     max-height: none !important;
     overflow-y: visible !important;
-    overflow-x: hidden;
+    overflow-x: hidden !important;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .biodata-sheet {
-    transform: none;
+    transform-origin: top center;
     margin: 0 auto;
   }
 
